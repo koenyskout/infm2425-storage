@@ -21,14 +21,35 @@
 
 Bekijk de gegevens in de movies-collectie. Wat valt op vergeleken met de SQL tabellen (in het bijzonder qua normalisatie)?
 
+> **Oplossing**
+>
+> De gegevens zijn niet genormaliseerd. Bijvoorbeeld, de naam van de regisseurs en acteurs staan in het JSON-document van een film.
+
 ### Oefening 2
 Zoek alle films met als genre (key) de waarde Sci-Fi. Kijk goed naar het resultaat; hebben deze films ook nog een ander genre? Hoe zou je dit in een SQL database moeten doen?
+
+> **Oplossing**
+>
+> Zoekopdracht met
+> - key: genre
+> - value: Sci-Fi
+> 
+> Deze films hebben ook andere genres.
+> In een SQL database zou dit een many-to-many relatie zijn, en zou er dus een junction tabel gebruikt moeten worden.
+
 
 ### Oefening 3
 
 Zoek alle films waarin `Leonardo DiCaprio` een rol speelde.
 
 > *Hint: als key gebruik je `cast.actor.name`, als value de naam van de acteur. Dit geeft aan dat je wil zoeken op de naam van de acteur van de cast van de film.*
+
+> **Oplossing**
+>
+> Zoekopdracht met
+> - key: cast.actor.name
+> - value: Leonardo DiCaprio
+
 
 ### Oefening 4
 
@@ -57,3 +78,12 @@ Een query kan ook een `projection`-deel hebben. Dat geeft aan welke delen van he
 ```
 
 Ga naar de tab `Advanced` en voer bovenstaande query en projection in. Bekijk het antwoord, en ga na of dat aan de query voldoet.
+
+> **Oplossing**
+>
+> De query zoekt films die voldoen aan al onderstaande voorwaarden:
+> - het genre is Sci-Fi
+> - de films zijn uitgekomen na 1995
+> - Leonardo DiCaprio of Keanu Reeves spelen erin mee
+> 
+> Van de twee films die hieraan voldoen krijgen we (via de projection) de titel, jaar, regisseur, en alle acteurs (dus niet enkel de acteurs die voldoen aan de query).
