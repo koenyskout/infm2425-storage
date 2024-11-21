@@ -10,4 +10,4 @@ In deze repository vind je verschillende folders met oefeningen. De opdracht voo
 
 - [./01-sql](01-sql): oefeningen op SQL
 - [./02-nosql](02-nosql): oefeningen op NoSQL
-
+- [./03-timeseries](03-timeseries): oefeningen op time series databases

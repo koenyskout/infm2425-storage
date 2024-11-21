@@ -1,0 +1,49 @@
+services:
+  influxdb:
+    image: influxdb:2
+    ports:
+      - 8086:8086
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=password
+      - DOCKER_INFLUXDB_INIT_ORG=infm
+      - DOCKER_INFLUXDB_INIT_BUCKET=timeseries
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=admintoken
+    volumes:
+      - "./influxdb2_data/config:/etc/influxdb2"
+      - "./influxdb2_data/data:/var/lib/influxdb2"
+
+  dummy_datasource:
+    build: dummy_datasource
+    depends_on:
+      - mosquitto
+    environment:
+      - MQTT_BROKER_HOST=mosquitto
+      - MQTT_BROKER_PORT=1883
+  
+  mosquitto:
+    image: eclipse-mosquitto
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
+
+  telegraf:
+    image: telegraf:latest
+    depends_on:
+      - influxdb
+      - mosquitto
+    environment:
+      - INFLUX_TOKEN=admintoken
+    volumes:
+      - ./telegraf.conf:/etc/telegraf/telegraf.conf:ro
+
+  # Deze container kan je gebruiken als GUI voor de MQTT server
+  # mqttx:
+  #   image: emqx/mqttx-web
+  #   depends_on:
+  #     - mosquitto
+  #   ports:
+  #     - "8080:80"
