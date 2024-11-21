@@ -23,7 +23,21 @@ De database gaat over films; je ziet links in Beekeeper een lijst met de tabelle
    Vind je ergens one-to-many, many-to-one, many-to-many relaties terug?
    Welke tabellen zijn 'junction tables'?
 
+> **Oplossing**
+>
+> One-to-many/many-to-one:
+> - `movies` (many) - (one) `directors`
+> - `movies` (many) - (one) `studio`
+> - `movies` (many) - (one) `rating`
+>
+> Many-to-many:
+> - `movies` (many) - (many) `actors`, met als junction table `movie_actor`
+
 6. Zie je ergens een mogelijkheid om de database verder te normaliseren?
+
+> **Oplossing**
+>
+> Het genre in de `movies`-tabel zou verder genormaliseerd kunnen worden.
 
 > Als je later opnieuw wil beginnen met de originele database,
 > - stop je de database (Ctrl-C)
@@ -36,8 +50,21 @@ De database gaat over films; je ziet links in Beekeeper een lijst met de tabelle
 ### Oefening 1
 Selecteer alle films.
 
+> **Oplossing**
+>
+> ```sql
+> SELECT * FROM movies;
+>```
+
+
 ### Oefening 2
 Selecteer de titel en jaar van alle films die **na** het jaar 2000 uitgebracht zijn.
+
+> **Oplossing**
+>
+> ```sql
+> SELECT * FROM movies WHERE release_year > 2000;
+>```
 
 | title           | release_year |
 | --------------- | ------------ |
@@ -48,6 +75,12 @@ Selecteer de titel en jaar van alle films die **na** het jaar 2000 uitgebracht z
 ### Oefening 3
 Selecteer de titel en het jaar alle films die **voor** het jaar 2000 uitgebracht zijn, **en** die het genre 'Sci-Fi' hebben, gesorteerd op titel.
 
+> **Oplossing**
+>
+> ```sql
+> SELECT * FROM movies WHERE release_year < 2000 AND genre = 'Sci-Fi';
+>```
+
 | title      | release_year |
 | ---------- | ------------ |
 | The Matrix | 1999         |
@@ -57,6 +90,13 @@ Selecteer de titel en het jaar alle films die **voor** het jaar 2000 uitgebracht
 
 ### Oefening 4
 Selecteer van alle films de titel, de naam van hun regisseur, en hun jaartal, gesorteerd op naam van de regisseur en vervolgens op jaartal.
+
+> **Oplossing**
+>
+> ```sql
+> SELECT title, name, release_year FROM movies LEFT JOIN directors ON movies.director_id = directors.director_id ORDER BY name, release_year;
+>```
+
 
 | name                 | release_year | title                    |
 | -------------------- | ------------ | ------------------------ |
@@ -74,6 +114,14 @@ Selecteer van alle films de titel, de naam van hun regisseur, en hun jaartal, ge
 
 ### Oefening 5
 Selecteer van alle films en alle ratings (dus ook de ratings zonder film in de database) de titel van de film en de rating.
+
+> **Oplossing**
+>
+> ```sql
+> SELECT title, rating FROM movies FULL OUTER JOIN ratings ON movies.rating_id = ratings.rating_id;
+>```
+> Aangezien er geen films zonder rating zijn, zou een `RIGHT JOIN` hetzelfde resultaat geven.
+
 
 | title                    | rating |
 | ------------------------ | ------ |
@@ -93,6 +141,13 @@ Selecteer van alle films en alle ratings (dus ook de ratings zonder film in de d
 
 ### Oefening 6
 Selecteer alle films de titel en de actor_id van de acteurs die erin meespelen.
+
+> **Oplossing**
+>
+> ```sql
+> SELECT title, actor_id FROM movies LEFT JOIN movie_actor ON movies.movie_id = movie_actor.movie_id;
+>```
+
 
 | title                    | actor_id |
 | ------------------------ | -------- |
@@ -130,6 +185,12 @@ Selecteer alle films de titel en de actor_id van de acteurs die erin meespelen.
 Selecteer alle films de titel en naam van de acteurs die erin meespelen.
 Bijvoorbeeld:
 
+> **Oplossing**
+>
+> ```sql
+> SELECT title, name FROM movies LEFT JOIN movie_actor ON movies.movie_id = movie_actor.movie_id LEFT JOIN actors on movie_actor.actor_id = actors.actor_id;
+>```
+
 | title                    | name                 |
 | ------------------------ | -------------------- |
 | Avatar                   | Sam Worthington      |
@@ -165,6 +226,13 @@ Bijvoorbeeld:
 ### Oefening 8
 Selecteer alle films met een 'PG-13' of 'R'-rating. Geef van elke film de titel, naam van de regisseur, en de rating terug.
 
+> **Oplossing**
+>
+> ```sql
+> SELECT title, name, rating FROM movies LEFT JOIN directors ON movies.director_id = directors.director_id LEFT JOIN ratings ON movies.rating_id = ratings.rating_id;
+>```
+
+
 ## Oefeningen deel 3: INSERT, UPDATE, DELETE
 
 ### Oefening 9
@@ -173,8 +241,32 @@ Voeg je favoriete film en acteurs toe aan de database.
 > *Opgelet: je moet de gegevens invoeren in de juiste volgorde, zodat je geen verwijzingen creëert naar niet-bestaande rijen.
 Dus eerst acteurs en regisseurs, dan de film zelf, en helemaal op het einde de rijen in de junction tables.*
 
+> **Oplossing**
+>
+> ```sql
+> INSERT INTO directors(name, birth_year) VALUES ('Favorite Director', 1970); -- ID 9
+> INSERT INTO actors(name) VALUES ('Favorite Actor'); -- ID 29
+> INSERT INTO movies(title, release_year, genre, studio_id, director_id, rating_id) VALUES ('Favorite Movie', 2010, 'Tech', 1, 9, 1); -- ID 11
+> INSERT INTO movie_actor(movie_id, actor_id) VALUES (11, 29)
+>```
+
+
 ### Oefening 10
 Pas de beschrijving van de rating 'G' aan naar 'Everyone'.
 
+> **Oplossing**
+>
+> ```sql
+> UPDATE ratings SET description='Everyone' WHERE rating = 'G';
+>```
+
+
 ### Oefening 11
 Verwijder alle films van voor 1995 uit de tabel.
+
+> **Oplossing**
+>
+> ```sql
+> DELETE FROM movies WHERE release_year < 1995;
+>```
+> Merk op dat de database zo geconfigureerd is dat deze films ook automatisch uit de `movie_actor` tabel verwijderd werden, om geen verwijzingen te hebben naar niet-bestaande films.
