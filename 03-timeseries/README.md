@@ -42,10 +42,29 @@ Bekijk de Python-broncode van de [data-generator](./dummy_datasource/generator.p
 
 Hoeveel sensoren en actuatoren zijn er die data aanleveren?
 
+
+> **Oplossing**
+> 
+> Er zijn 2 sensoren (`water_level_sensor_01` en `water_temp_sensor_01`) en 3 actuatoren (`inlet_valve_01`, `outlet_valve_01`, `heater_actuator_01`) die data aanleveren via MQTT.
+
 ### Oefening 2
 
 Bekijk het bestand [`telegraf.conf`](telegraf.conf) in deze folder (dat kan met [VS Code](https://code.visualstudio.com/), PyCharm, of een andere gewone teksteditor). Wat wordt er in dit bestand geconfigureerd?
 Kan je terugvinden hoe de data uit MQTT omgezet wordt in fields en tags?
+
+> **Oplossing**
+> 
+> Telegraf is de agent die gegevens uit de MQTT broker haalt en in InfluxDB stopt.
+>
+> In de sectie `inputs.mqtt_consumer` wordt aangegeven welke MQTT server gebruikt wordt, en naar welke topics geluisterd zal worden.
+>
+> In de sectie `inputs.mqtt_consumer.topic_parsing` wordt aangegeven hoe de verschillende delen van het MQTT topic vertaald worden in tags. Voor een MQTT topic `factory/site1/sensor/temp_sensor_01/temperature` wordt
+> - `factory` gebruikt als measurement-naam in InfluxDB
+> - `site1`, `sensor` en `temp_sensor_01` als tags (`site`, `type`, en `deviceid`, respectievelijk)
+> 
+> In de sectie `inputs.mqtt_consumer.json_v2` wordt aangegeven hoe de JSON-objecten die gepublished worden in het topic omgezet worden in tags en fields:
+> - het JSON-veld met naam `unit` wordt een tag
+> - de JSON-velden met naam `value` (voor sensoren) of `state` (voor actuatoren) worden een field
 
 ### Oefening 3
 
@@ -58,21 +77,64 @@ from(bucket: "timeseries")
 |> range(start: -30s)
 ```
 
+> **Oplossing**
+>
+> Je ziet nu alle data van de laatste 30 seconden in tabelvorm.
+
 ### Oefening 4
 
 Hoeveel tabellen zitten er in het resultaat van oefening 3? (Kijk naar de eerste kolom in het resultaat)
+
+> **Oplossing**
+>
+> Er zijn 5 tabellen (genummerd van 0 tot en met 4), namelijk 1 voor elk van volgende combinaties:
+> - `_field="value", device="water_temp_sensor_01"`
+> - `_field="value", device="water_level_sensor_01"`
+> - `_field="state", device="inlet_valve_01"`
+> - `_field="state", device="outlet_valve_01"`
+> - `_field="state", device="heater_actuator_01"`
+> 
+> (De andere tags zijn constant of variëren steeds mee met de device-tag, dus leveren geen extra combinaties op).
 
 ### Oefening 5
 
 Maak een query die de gemiddelde waarde van *alle sensoren* van de laatste 30 seconden teruggeeft.
 
+> **Oplossing**
+>
+> ```flux
+>from(bucket: "timeseries")
+>|> range(start: -30s)
+>|> filter(fn: (r) => r.type == "sensor" and r._field == "value")
+>|> mean()
+>```
+
 ### Oefening 6
 
 Maak een query die, van de laatste 5 minuten in periodes van 30 seconden, de gemiddelde waarde van *alle sensoren* teruggeeft.
 
+> **Oplossing**
+>
+> ```flux
+>from(bucket: "timeseries")
+>|> range(start: -5m)
+>|> filter(fn: (r) => r.type == "sensor" and r._field == "value")
+>|> aggregateWindow(every: 30s, fn: mean)
+>```
+
 ### Oefening 7
 
 Maak een query die, van de laatste 5 minuten in periodes van 30 seconden, de gemiddelde temperatuur gemeten door `water_temp_sensor_01` in elk van die periodes teruggeeft.
+
+> **Oplossing**
+>
+> ```flux
+>from(bucket: "timeseries")
+>|> range(start: -5m)
+>|> filter(fn: (r) => r.deviceid == "water_temp_sensor_01" and r._field == "value")
+>|> aggregateWindow(every: 30s, fn: mean)
+>```
+
 
 ### Oefening 8
 
@@ -81,6 +143,17 @@ Zet 'View Raw Data' uit. Je ziet nu het resultaat als een grafiek in plaats van 
 ### Oefening 9
 
 Maak een query (en grafiek) die het *moving average* van het waterniveau weergeeft, telkens gebaseerd op de laatste 10 metingen.
+
+> **Oplossing**
+>
+>```flux
+>from(bucket: "timeseries")
+>|> range(start: -1h)
+>|> filter(fn: (r) => r.deviceid == "water_level_sensor_01" and r._field == "value")
+>|> movingAverage(n: 10)
+>```
+> 
+> De opgave vermeldde niet hoe lang in de tijd we terug moesten gaan, maar `range` is vereist. We kozen hier 1 uur.
 
 ### Oefening 10
 
@@ -99,3 +172,15 @@ InfluxDB heeft ook een makkelijkere manier om queries te bouwen.
 
 3. Druk op submit en bekijk het resultaat.
 4. Bedenk welke query je hier uitvoert. 
+
+> **Oplossing**
+>
+> Deze query geeft alle sensorwaarden van de voorbije 15 minuten terug, waarbij de waarden telkens het gemiddelde zijn van de vorige 5 seconden. Dit komt overeen met volgende query:
+>```flux
+>from(bucket: "timeseries")
+>|> range(start: -15m)
+>|> filter(fn: (r) => r._measurement == "factory")
+>|> filter(fn: (r) => r.type == "sensor")
+>|> filter(fn: (r) => r._field == "value")
+>|> aggregateWindow(every: 5s, fn: mean)
+>```
